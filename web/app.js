@@ -11,7 +11,8 @@ import {
 // Configurazione pubblica del progetto: l'accesso ai dati e' protetto dalle regole di Firestore
 const firebaseConfig = {
   apiKey: "AIzaSyDq63s8LZBT9ESfvR6-bvPaWqQBQbW6yeA",
-  authDomain: "magazzino-ds-lab.firebaseapp.com",
+  // Il login passa dallo stesso dominio dell'app (vedi web/__/auth), necessario per i browser che bloccano i cookie di terze parti
+  authDomain: "lelux95.github.io/Lelux-3D-Calculator",
   projectId: "magazzino-ds-lab",
   storageBucket: "magazzino-ds-lab.firebasestorage.app",
   messagingSenderId: "256512928793",

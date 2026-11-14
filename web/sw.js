@@ -1,5 +1,5 @@
 // Tiene l'app disponibile anche senza rete. I dati li gestisce Firestore.
-const CACHE = "magazzino-v1";
+const CACHE = "magazzino-v2";
 const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -14,6 +14,7 @@ self.addEventListener("fetch", (e) => {
   const sameOrigin = url.origin === self.location.origin;
   const sdk = url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/");
   if (!sameOrigin && !sdk) return; // Firestore e login passano direttamente in rete
+  if (url.pathname.includes("/__/auth/")) return; // pagine di accesso: mai dalla cache
   // Prima la rete (cosi' gli aggiornamenti arrivano subito), poi la copia salvata
   e.respondWith(
     fetch(e.request).then((res) => {
