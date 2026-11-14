@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <div id="app">
@@ -93,10 +93,10 @@
     </div>
     <div class="row">
       <label class="grow">Bobina aperta (g)
-        <input name="aperta" type="number" inputmode="numeric" min="0" step="10" placeholder="nessuna">
+        <input name="aperta" type="number" inputmode="numeric" min="0" step="1" placeholder="nessuna">
       </label>
       <label class="grow">Peso bobina (g)
-        <input name="peso" type="number" inputmode="numeric" min="1" step="50" value="1000">
+        <input name="peso" type="number" inputmode="numeric" min="1" step="1" value="1000">
       </label>
     </div>
     <label>Note
@@ -118,7 +118,7 @@
     <h2 id="open-title">Bobina aperta</h2>
     <p class="muted small" id="open-sub"></p>
     <label>Grammi rimasti (stima)
-      <input name="g" type="number" inputmode="numeric" min="0" step="10">
+      <input name="g" type="number" inputmode="numeric" min="0" step="1">
     </label>
     <input id="open-range" type="range" min="0" max="1000" step="10">
     <div class="quick" id="open-quick"></div>
@@ -152,6 +152,6 @@
 <datalist id="dl-tipi"></datalist>
 <div id="toast" class="toast hidden"></div>
 
-<script type="module" src="app.js?v=3"></script>
+<script type="module" src="app.js?v=4"></script>
 </body>
 </html>
