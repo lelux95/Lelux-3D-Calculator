@@ -148,9 +148,9 @@ function card(f) {
   return `<div class="card ${low ? "low" : ""}">
     <div class="swatch" style="background:${esc(f.hex || "#888")}"></div>
     <div class="info" data-edit="${f.id}">
-      <div class="name">${esc(f.colore)}${low ? '<span class="tag-low">sotto scorta</span>' : ""}</div>
+      <div class="name">${esc(f.colore)}</div>
       <div class="sub">${esc(f.marca)} · ${esc(f.tipo)}</div>
-      ${openPill(f)}
+      <div class="pill-row">${openPill(f)}${low ? '<span class="tag-low">sotto scorta</span>' : ""}</div>
     </div>
     <div class="stepper">
       <button data-dec="${f.id}" aria-label="Togli una bobina">−</button>
