@@ -172,6 +172,7 @@ data class Settings(
     val rounding: Rounding = Rounding.NONE,
     val defaultChannelId: String? = null,
     val defaultPrinterId: String? = null,
+    val defaultFilamentId: String? = null,
     // Preventivi
     val quotePrefix: String = "LX",
     val nextQuoteNumber: Int = 1,

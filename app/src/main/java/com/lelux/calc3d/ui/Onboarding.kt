@@ -28,6 +28,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -96,8 +97,9 @@ fun Onboarding(vm: AppViewModel, onDone: () -> Unit) {
         onDone()
     }
 
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().imePadding()
+        Modifier.fillMaxSize().systemBarsPadding().imePadding()
     ) {
         LinearProgressIndicator(progress = { (step + 1f) / steps }, modifier = Modifier.fillMaxWidth().padding(16.dp))
         Column(
@@ -230,5 +232,6 @@ fun Onboarding(vm: AppViewModel, onDone: () -> Unit) {
             ) { Text(if (step < steps - 1) "Avanti" else "Inizia") }
         }
         Box(Modifier.size(0.dp))
+    }
     }
 }

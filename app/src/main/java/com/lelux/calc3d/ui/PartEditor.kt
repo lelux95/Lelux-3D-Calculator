@@ -89,6 +89,7 @@ fun PartEditor(vm: AppViewModel, initial: Part, isNew: Boolean, onClose: () -> U
                             if (p.sizeX > 0) Text("${Fmt.num1(p.sizeX)} × ${Fmt.num1(p.sizeY)} × ${Fmt.num1(p.sizeZ)} mm", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (p.modelFile != null) TextButton(onClick = { showViewer = true }) { Text("Guarda in 3D") }
                         }
+                        PhotoButton(vm, null, 56.dp) { path -> p = p.copy(thumbnailFile = path) }
                     }
                     TextIn("Nome del pezzo", p.name, { p = p.copy(name = it) })
                     Selector("Stampante", data.printers, data.printers.firstOrNull { it.id == p.printerId } ?: CostEngine.printerFor(p, data),
@@ -165,7 +166,7 @@ fun PartEditor(vm: AppViewModel, initial: Part, isNew: Boolean, onClose: () -> U
 }
 
 @Composable
-private fun FilamentUsageRow(
+fun FilamentUsageRow(
     vm: AppViewModel, usage: FilamentUsage, index: Int, canDelete: Boolean, editableGrams: Boolean,
     onChange: (FilamentUsage) -> Unit, onDelete: () -> Unit,
 ) {

@@ -58,7 +58,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun resetDraft() { draft.value = newQuote() }
+    fun resetDraft() { draft.value = newQuote(); lastImported.value = emptyList(); manual.value = blankManual() }
 
     fun result(q: Quote = draft.value): QuoteResult = CostEngine.compute(q, repo.data.value)
 
@@ -68,8 +68,92 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun defaultPrinterId(): String? = repo.data.value.let { it.settings.defaultPrinterId ?: it.printers.firstOrNull()?.id }
 
-    fun defaultFilament(): Filament? = repo.data.value.filaments.let { list ->
-        list.firstOrNull { it.type.equals("PLA", true) } ?: list.firstOrNull()
+    fun defaultFilament(): Filament? = repo.data.value.let { d ->
+        d.filaments.firstOrNull { it.id == d.settings.defaultFilamentId }
+            ?: d.filaments.firstOrNull { it.type.equals("PLA", true) } ?: d.filaments.firstOrNull()
+    }
+
+    // ---------- Inserimento manuale (modulo nella home) ----------
+
+    val manual = MutableStateFlow(blankManual())
+    /** Pezzi appena importati da file, mostrati nel riquadro di conferma */
+    val lastImported = MutableStateFlow<List<Part>>(emptyList())
+
+    fun blankManual(): Part {
+        val f = defaultFilament()
+        return Part(
+            name = "",
+            printerId = defaultPrinterId(),
+            filaments = listOf(FilamentUsage(filamentId = f?.id, type = f?.type ?: "PLA", colorHex = f?.colorHex ?: "#FFFFFF")),
+            source = PartSource.MANUAL,
+        )
+    }
+
+    fun addManual(): Boolean {
+        val m = manual.value
+        if (m.totalGrams <= 0 && m.printSeconds <= 0) { toast("Inserisci almeno peso o tempo di stampa"); return false }
+        val name = m.name.ifBlank { "Pezzo ${draft.value.parts.size + 1}" }
+        draft.value = draft.value.copy(parts = draft.value.parts + m.copy(name = name, id = com.lelux.calc3d.data.newId()))
+        manual.value = blankManual()
+        toast("$name aggiunto al calcolatore")
+        return true
+    }
+
+    fun manualToCatalog() {
+        val m = manual.value
+        if (m.totalGrams <= 0 && m.printSeconds <= 0) { toast("Compila peso e tempo prima di salvare"); return }
+        repo.addToCatalog(m.copy(id = com.lelux.calc3d.data.newId(), name = m.name.ifBlank { "Pezzo" }))
+        toast("Salvato nel catalogo")
+    }
+
+    fun manualFromCatalog(p: Part) {
+        manual.value = p.copy(id = com.lelux.calc3d.data.newId(), quantity = 1, source = PartSource.MANUAL)
+    }
+
+    /** Stampante e materiale scelti nella barra in alto: valgono per i nuovi pezzi. */
+    fun setDefaults(printerId: String? = null, filament: Filament? = null) {
+        repo.updateSettings { s ->
+            s.copy(defaultPrinterId = printerId ?: s.defaultPrinterId, defaultFilamentId = filament?.id ?: s.defaultFilamentId)
+        }
+        manual.value = manual.value.let { m ->
+            var n = m
+            if (printerId != null) n = n.copy(printerId = printerId)
+            if (filament != null) {
+                val fils = n.filaments.toMutableList()
+                if (fils.isEmpty()) fils += FilamentUsage()
+                fils[0] = fils[0].copy(filamentId = filament.id, type = filament.type, colorHex = filament.colorHex)
+                n = n.copy(filaments = fils)
+            }
+            n
+        }
+    }
+
+    // ---------- Foto ----------
+
+    fun cameraFile(): File = File(getApplication<Application>().cacheDir, "camera").apply { mkdirs() }.let { File(it, "foto.jpg") }
+
+    /** Salva una foto (galleria o fotocamera) come miniatura, raddrizzata e ridotta. */
+    suspend fun savePhoto(uri: Uri): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val cr = getApplication<Application>().contentResolver
+            val bmp = cr.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it) } ?: return@runCatching null
+            val rotation = runCatching {
+                cr.openInputStream(uri)?.use { input ->
+                    when (android.media.ExifInterface(input).getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, 1)) {
+                        android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                        android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                        android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                        else -> 0f
+                    }
+                } ?: 0f
+            }.getOrDefault(0f)
+            val scale = minOf(1f, 640f / maxOf(bmp.width, bmp.height))
+            val matrix = android.graphics.Matrix().apply { postScale(scale, scale); postRotate(rotation) }
+            val out = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+            val f = File(repo.thumbsDir, "foto-${System.currentTimeMillis()}.jpg")
+            f.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 88, it) }
+            f.absolutePath
+        }.getOrNull()
     }
 
     fun newManualPart() {
@@ -88,10 +172,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val exists = draft.value.parts.any { it.id == p.id }
         draft.value = draft.value.copy(parts = if (exists) draft.value.parts.map { if (it.id == p.id) p else it } else draft.value.parts + p)
         if (alsoCatalog) { repo.addToCatalog(p); toast("Salvato anche nel catalogo") }
+        lastImported.value = lastImported.value.map { if (it.id == p.id) p else it }
         editing.value = null
     }
 
-    fun removePart(id: String) { draft.value = draft.value.copy(parts = draft.value.parts.filterNot { it.id == id }) }
+    fun removePart(id: String) {
+        draft.value = draft.value.copy(parts = draft.value.parts.filterNot { it.id == id })
+        lastImported.value = lastImported.value.filterNot { it.id == id }
+    }
 
     fun setQuantity(id: String, q: Int) {
         draft.value = draft.value.copy(parts = draft.value.parts.map { if (it.id == id) it.copy(quantity = q.coerceAtLeast(1)) else it })
@@ -144,13 +232,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             busy.value = true
             try {
                 val parts = withContext(Dispatchers.IO) { buildParts(ModelImporter.import(getApplication<Application>(), uri, repo.modelsDir)) }
-                when {
-                    parts.size == 1 -> editing.value = parts[0] to true
-                    else -> {
-                        draft.value = draft.value.copy(parts = draft.value.parts + parts)
-                        toast("Importati ${parts.size} piatti dal file")
-                    }
-                }
+                // I pezzi entrano subito nella lista; il riquadro di conferma permette di correggerli
+                draft.value = draft.value.copy(parts = draft.value.parts + parts)
+                lastImported.value = parts
             } catch (e: ImportException) {
                 toast(e.message ?: "Errore di importazione")
             } catch (e: OutOfMemoryError) {

@@ -208,7 +208,7 @@ fun SettingsScreen(vm: AppViewModel) {
             }
         }
 
-        Text("Lelux 3D Calculator 0.1.0", Modifier.fillMaxWidth().padding(8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+        Text("Lelux 3D Calculator 0.2.0", Modifier.fillMaxWidth().padding(8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(16.dp))
     }
 

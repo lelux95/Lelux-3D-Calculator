@@ -92,36 +92,38 @@ fun CalculatorScreen(vm: AppViewModel) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Intestazione
+        // Intestazione: nuovo calcolo + stampante e materiale per i nuovi pezzi
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Lelux 3D Calculator", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { if (quote.parts.isNotEmpty()) confirmNew = true else vm.resetDraft() },
+                shape = RoundedCornerShape(18.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+            ) {
+                Text("Nuovo calcolo", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Filled.Add, null)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                 Text(
-                    if (quote.number.isBlank()) "Nuovo preventivo" else "Preventivo ${quote.number} · ${quote.status.label}",
+                    if (quote.number.isBlank()) "Preventivo non salvato" else quote.number,
+                    fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    if (quote.number.isBlank()) "${quote.parts.size} pezzi" else "${quote.status.label} · ${quote.parts.size} pezzi",
                     color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall,
                 )
             }
-            FilledTonalButton(onClick = { if (quote.parts.isNotEmpty()) confirmNew = true else vm.resetDraft() }) {
-                Icon(Icons.Filled.Add, null); Spacer(Modifier.width(4.dp)); Text("Nuovo")
-            }
         }
+        DefaultsBar(vm)
 
-        // Aggiunta pezzi
-        SectionCard("Aggiungi pezzo") {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AddButton("Da file", ".3mf .gcode .stl", Modifier.weight(1f)) { picker.launch(arrayOf("*/*")) }
-                AddButton("Catalogo", "${data.catalog.size} salvati", Modifier.weight(1f)) { showCatalog = true }
-                AddButton("Manuale", "peso e tempo", Modifier.weight(1f)) { vm.newManualPart() }
-            }
-            Text(
-                "Suggerimento: dal file manager o da WhatsApp tocca un .3mf e scegli \"Apri con Lelux 3D Calculator\".",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        AddPanel(vm, onPickFile = { picker.launch(arrayOf("*/*")) }, onOpenCatalog = { showCatalog = true })
+
+        ImportedConfirm(vm)
 
         // Pezzi
         if (quote.parts.isNotEmpty()) {
-            SectionCard("Pezzi nel preventivo") {
+            SectionCard("Prodotti nel preventivo") {
                 result.parts.forEachIndexed { i, pc ->
                     if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     PartRow(
@@ -143,20 +145,12 @@ fun CalculatorScreen(vm: AppViewModel) {
             DetailsPanel(vm, quote, onSave = {
                 vm.saveDraft()?.let { vm.toast("Preventivo ${it.number} salvato nello storico") }
             }, onShare = { showShare = true })
-        } else {
-            Box(
-                Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("Nessun pezzo: carica un file o inseriscilo a mano", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
         }
         Spacer(Modifier.height(24.dp))
     }
 
-    if (confirmNew) ConfirmDialog("Nuovo preventivo", "Il preventivo attuale verrà chiuso. Se non l'hai salvato, le modifiche andranno perse.", "Nuovo", { vm.resetDraft() }, { confirmNew = false })
-    if (showCatalog) CatalogPicker(vm, onDismiss = { showCatalog = false })
+    if (confirmNew) ConfirmDialog("Nuovo calcolo", "Il preventivo attuale verrà chiuso e si ripartirà da zero. Se non l'hai salvato, le modifiche andranno perse.", "Nuovo calcolo", { vm.resetDraft() }, { confirmNew = false })
+    if (showCatalog) CatalogPicker(vm, onPick = { vm.addFromCatalog(it) }, onDismiss = { showCatalog = false })
     if (showBreakdown) BreakdownDialog(result, data.settings.vatPercent, onDismiss = { showBreakdown = false })
     if (showShare) ShareDialog(vm, onDismiss = { showShare = false }, scope = scope, context = context)
     viewerPart?.let { p -> ViewerDialog(vm, p, onDismiss = { viewerPart = null }) }
@@ -350,7 +344,7 @@ fun BreakdownDialog(r: QuoteResult, vatPercent: Double, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun CatalogPicker(vm: AppViewModel, onDismiss: () -> Unit) {
+fun CatalogPicker(vm: AppViewModel, onPick: (Part) -> Unit, onDismiss: () -> Unit) {
     val data by vm.data.collectAsState()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -360,7 +354,7 @@ private fun CatalogPicker(vm: AppViewModel, onDismiss: () -> Unit) {
             if (data.catalog.isEmpty()) Text("Il catalogo è vuoto. Quando aggiungi un pezzo, spunta \"Salva anche nel catalogo\" per ritrovarlo qui.")
             else LazyColumn(Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(data.catalog, key = { it.id }) { c ->
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { vm.addFromCatalog(c.part); onDismiss() }.padding(6.dp),
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(c.part); onDismiss() }.padding(6.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Thumb(c.part.thumbnailFile, 46.dp)
                         Spacer(Modifier.width(10.dp))
