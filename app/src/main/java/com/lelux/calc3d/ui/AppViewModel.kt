@@ -143,7 +143,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             busy.value = true
             try {
-                val parts = withContext(Dispatchers.IO) { buildParts(ModelImporter.import(getApplication(), uri, repo.modelsDir)) }
+                val parts = withContext(Dispatchers.IO) { buildParts(ModelImporter.import(getApplication<Application>(), uri, repo.modelsDir)) }
                 when {
                     parts.size == 1 -> editing.value = parts[0] to true
                     else -> {

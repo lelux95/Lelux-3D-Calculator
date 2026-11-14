@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
         val uri: Uri? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data
             Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                else intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                else intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
             else -> null
         }
         if (uri != null) {
