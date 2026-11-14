@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121316">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Magazzino DS Lab</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Accesso -->
+  <section id="login" class="screen hidden">
+    <div class="login-box">
+      <img src="icons/icon-192.png" alt="" class="login-logo">
+      <h1>Magazzino DS Lab</h1>
+      <p class="muted">Filamenti, bobine e lista della spesa, sempre aggiornati su tutti i vostri telefoni.</p>
+      <button id="btn-login" class="btn primary big">Accedi con Google</button>
+      <p id="login-error" class="error"></p>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="main" class="screen hidden">
+    <header class="topbar">
+      <div>
+        <div class="title">Magazzino DS Lab</div>
+        <div id="sync" class="muted small">Sincronizzazione…</div>
+      </div>
+      <button id="btn-account" class="avatar" title="Account"></button>
+    </header>
+
+    <nav class="tabs">
+      <button data-tab="stock" class="tab active">Magazzino</button>
+      <button data-tab="buy" class="tab">Da comprare <span id="buy-count" class="badge hidden">0</span></button>
+    </nav>
+
+    <!-- Magazzino -->
+    <div id="tab-stock" class="tabpage">
+      <div class="stats" id="stats"></div>
+      <div class="search">
+        <input id="q" type="search" placeholder="Cerca colore, marca o tipo…" autocomplete="off">
+      </div>
+      <div class="chips" id="chips-type"></div>
+      <div class="chips" id="chips-brand"></div>
+      <div id="list" class="list"></div>
+      <p id="empty" class="muted center hidden"></p>
+    </div>
+
+    <!-- Da comprare -->
+    <div id="tab-buy" class="tabpage hidden">
+      <p class="muted small pad">Colori con bobine piene sotto la scorta minima. Imposta la scorta minima modificando un filamento.</p>
+      <div id="buy-list" class="list"></div>
+      <p id="buy-empty" class="muted center hidden">Tutto in ordine: nessun colore sotto scorta 🎉</p>
+      <button id="btn-share-buy" class="btn ghost full hidden">Condividi la lista</button>
+    </div>
+
+    <button id="fab" class="fab" aria-label="Aggiungi filamento">＋</button>
+  </section>
+</div>
+
+<!-- Scheda filamento -->
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <h2 id="dlg-title">Nuovo filamento</h2>
+    <label>Marca
+      <input name="marca" list="dl-marche" required placeholder="Es. Bambu Lab">
+    </label>
+    <label>Tipo
+      <input name="tipo" list="dl-tipi" required placeholder="Es. PLA Matte">
+    </label>
+    <div class="row">
+      <label class="grow">Colore
+        <input name="colore" required placeholder="Es. Verde Bosco">
+      </label>
+      <label class="color-pick">Tinta
+        <input name="hex" type="color" value="#ff8a3d">
+      </label>
+    </div>
+    <div class="palette" id="palette"></div>
+    <div class="row">
+      <label class="grow">Bobine piene
+        <input name="bobine" type="number" inputmode="numeric" min="0" step="1" value="1">
+      </label>
+      <label class="grow">Scorta minima
+        <input name="scorta" type="number" inputmode="numeric" min="0" step="1" value="0">
+      </label>
+    </div>
+    <div class="row">
+      <label class="grow">Bobina aperta (g)
+        <input name="aperta" type="number" inputmode="numeric" min="0" step="10" placeholder="nessuna">
+      </label>
+      <label class="grow">Peso bobina (g)
+        <input name="peso" type="number" inputmode="numeric" min="1" step="50" value="1000">
+      </label>
+    </div>
+    <label>Note
+      <input name="note" placeholder="Es. con bobina in cartone, ricarica AMS">
+    </label>
+    <p class="muted small" id="dlg-meta"></p>
+    <div class="dlg-actions">
+      <button type="button" id="btn-delete" class="btn danger hidden">Elimina</button>
+      <span class="grow"></span>
+      <button type="button" id="btn-cancel" class="btn ghost">Annulla</button>
+      <button type="submit" id="btn-save" class="btn primary">Salva</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Bobina aperta -->
+<dialog id="dlg-open">
+  <form id="form-open" method="dialog">
+    <h2 id="open-title">Bobina aperta</h2>
+    <p class="muted small" id="open-sub"></p>
+    <label>Grammi rimasti (stima)
+      <input name="g" type="number" inputmode="numeric" min="0" step="10">
+    </label>
+    <input id="open-range" type="range" min="0" max="1000" step="10">
+    <div class="quick" id="open-quick"></div>
+    <div class="dlg-actions wrap">
+      <button type="button" id="btn-open-new" class="btn ghost">Apri bobina nuova</button>
+      <button type="button" id="btn-open-done" class="btn ghost">Finita</button>
+      <span class="grow"></span>
+      <button type="button" id="btn-open-cancel" class="btn ghost">Annulla</button>
+      <button type="submit" class="btn primary">Salva</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Account -->
+<dialog id="dlg-account">
+  <div class="account">
+    <h2>Account</h2>
+    <p id="acc-email" class="muted"></p>
+    <label class="switch-row">Tema chiaro
+      <input type="checkbox" id="theme-light">
+    </label>
+    <div class="dlg-actions">
+      <button type="button" id="btn-logout" class="btn danger">Esci</button>
+      <span class="grow"></span>
+      <button type="button" id="btn-acc-close" class="btn primary">Chiudi</button>
+    </div>
+  </div>
+</dialog>
+
+<datalist id="dl-marche"></datalist>
+<datalist id="dl-tipi"></datalist>
+<div id="toast" class="toast hidden"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
